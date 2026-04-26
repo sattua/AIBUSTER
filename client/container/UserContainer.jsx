@@ -7,7 +7,7 @@ const GET_SEARCHES = gql`
       id
       query
       result {
-        risk_score
+        riskScore
         findings {
           type
           sentence
@@ -28,7 +28,7 @@ export default function SearchContainer() {
       {data.searches.map((s) => (
         <li key={s.id}>
           <strong>{s.query}</strong>
-          <p>Risk: {s.result?.risk_score}</p>
+          <p>Risk: {s.result?.riskScore}</p>
 
           <ul>
             {s.result?.findings?.map((f, i) => (

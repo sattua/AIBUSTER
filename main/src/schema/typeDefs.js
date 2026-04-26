@@ -13,10 +13,13 @@ export default `#graphql
   type Finding {
     type: String
     sentence: String
+    match: String
+    start: Int
+    end: Int
   }
 
   type AnalysisResult {
-    risk_score: Float
+    riskScore: Float
     findings: [Finding!]!
   }
 

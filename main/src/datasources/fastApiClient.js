@@ -26,7 +26,6 @@ export default class FastApiClient {
   async getDocuments() {
     console.log("getDocuments");
     const res = await fetch(`${this.baseUrl}/documents`);
-    console.dir(res.json());
     return res.json();
   }
 }

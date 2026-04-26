@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import SearchContainer from "./SearchContainer";
-import { GET_SEARCHES } from "./SearchContainer";
+import React, { useState, useCallback } from "react";
 import { gql } from "@apollo/client";
-import { useQuery, useMutation } from "@apollo/client/react";
+import { useMutation } from "@apollo/client/react";
+
+import AnalyzeInput from "../component/AnalyzeInput";
+import ResultCard from "../component/ResultCard";
+import SearchContainer from "./SearchContainer";
 
 const ANALYZE = gql`
   mutation($content: String!) {
@@ -10,10 +12,13 @@ const ANALYZE = gql`
       id
       query
       result {
-        risk_score
+        riskScore
         findings {
           type
           sentence
+          match
+          start
+          end
         }
       }
     }
@@ -22,49 +27,50 @@ const ANALYZE = gql`
 
 export default function App() {
   const [text, setText] = useState("");
-  const [analyze, { data, loading, error }] = useMutation(ANALYZE, {
-  refetchQueries: [
-    {
-      query: GET_SEARCHES,
-    },
-  ],
-});
 
-  const handleAnalyze = () => {
+  const [analyze, { data, loading, error }] = useMutation(ANALYZE, {
+    update(cache, { data }) {
+      if (!data?.analyzeDocument) return;
+
+      cache.modify({
+        fields: {
+          searches(existing = []) {
+            return [data.analyzeDocument, ...existing];
+          },
+        },
+      });
+    },
+  });
+
+  const handleAnalyze = useCallback(() => {
+    if (!text.trim()) return;
     analyze({ variables: { content: text } });
-  };
+  }, [text, analyze]);
 
   return (
-    <div>
-      <h1>AI BUSTER</h1>
+    <div className="container py-5">
 
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Write a prompt..."
+      <div className="text-center mb-5">
+        <h1 className="fw-bold">🚨 AI BUSTER</h1>
+        <p className="text-muted">
+          Analyze prompts for sensitive data exposure
+        </p>
+      </div>
+
+      <AnalyzeInput
+        text={text}
+        setText={setText}
+        onSubmit={handleAnalyze}
+        loading={loading}
       />
 
-      <button onClick={handleAnalyze}>Analyze</button>
-
-      {loading && <p>Analyzing...</p>}
-      {error && <pre>{error.message}</pre>}
-
-      {data && (
-        <div>
-          <p>Risk Score: {data.analyzeDocument.result?.risk_score}</p>
-
-          <ul>
-            {data.analyzeDocument.result?.findings?.map((f, i) => (
-              <li key={i}>
-                {f.type} → {f.sentence}
-              </li>
-            ))}
-          </ul>
+      {error && (
+        <div className="alert alert-danger">
+          {error.message}
         </div>
       )}
 
-      <hr />
+      <ResultCard result={data?.analyzeDocument?.result} />
 
       <SearchContainer />
     </div>
